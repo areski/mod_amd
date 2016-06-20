@@ -3,7 +3,7 @@
   <settings>
     <param name="silence_threshold" value="256"/>
     <param name="maximum_word_length" value="5000"/>
-    <param name="maximum_number_of_words" value="3"/>
+    <param name="maximum_number_of_words" value="4"/>
     <param name="between_words_silence" value="50"/>
     <param name="min_word_length" value="100"/>
     <param name="total_analysis_time" value="5000"/>

@@ -201,11 +201,11 @@ static switch_bool_t amd_handle_silence_frame(amd_vad_t *vad, const switch_frame
 		switch_log_printf(
 			SWITCH_CHANNEL_SESSION_LOG(vad->session),
 			SWITCH_LOG_DEBUG,
-			"AMD: MACHINE (silence_duration: %d, initial_silence: %d)\n",
+			"AMD: HUMAN (silence_duration: %d, initial_silence: %d)\n",
 			vad->silence_duration,
 			globals.initial_silence);
 
-		switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
+		switch_channel_set_variable(vad->channel, "amd_result", "HUMAN");
 		switch_channel_set_variable(vad->channel, "amd_cause", "INITIALSILENCE");
 		return SWITCH_TRUE;
 	}

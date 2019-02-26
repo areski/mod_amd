@@ -166,6 +166,22 @@ typedef struct amd_vad_c {
     uint32_t in_greeting:1;
 } amd_vad_t;
 
+static void amd_fire_event(const char *result, const char *cause, switch_core_session_t *fs_s)
+{
+    switch_event_t      *event;
+    switch_event_t      *event_copy;
+
+    if ((switch_event_create_subclass(&event, SWITCH_EVENT_CUSTOM, "amd")) != SWITCH_STATUS_SUCCESS)
+        return;
+    switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "AMD-Result", result);
+    switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "AMD-Cause", cause);
+    if ((switch_event_dup(&event_copy, event)) != SWITCH_STATUS_SUCCESS)
+        return;
+    switch_core_session_queue_event(fs_s, &event);
+    switch_event_fire(&event_copy);
+
+    return;
+}
 
 static amd_frame_classifier classify_frame(uint32_t silence_threshold, const switch_frame_t *f, const switch_codec_implementation_t *codec)
 {
@@ -207,12 +223,13 @@ static switch_bool_t amd_handle_silence_frame(amd_vad_t *vad, const switch_frame
         switch_log_printf(
                 SWITCH_CHANNEL_SESSION_LOG(vad->session),
                 SWITCH_LOG_DEBUG,
-                "AMD: MACHINE (silence_duration: %d, initial_silence: %d)\n",
+                "AMD: HUMAN (silence_duration: %d, initial_silence: %d)\n",
                 vad->silence_duration,
                 vad->params.initial_silence);
 
-        switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
+        switch_channel_set_variable(vad->channel, "amd_result", "HUMAN");
         switch_channel_set_variable(vad->channel, "amd_cause", "INITIALSILENCE");
+        amd_fire_event("HUMAN", "INITIALSILENCE", vad->session);
         return SWITCH_TRUE;
     }
 
@@ -226,6 +243,7 @@ static switch_bool_t amd_handle_silence_frame(amd_vad_t *vad, const switch_frame
 
         switch_channel_set_variable(vad->channel, "amd_result", "HUMAN");
         switch_channel_set_variable(vad->channel, "amd_cause", "SILENCEAFTERGREETING");
+        amd_fire_event("HUMAN", "SILENCEAFTERGREETING", vad->session);
         return SWITCH_TRUE;
     }
 
@@ -258,6 +276,7 @@ static switch_bool_t amd_handle_voiced_frame(amd_vad_t *vad, const switch_frame_
 
         switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
         switch_channel_set_variable(vad->channel, "amd_cause", "MAXWORDLENGTH");
+        amd_fire_event("MACHINE", "MAXWORDLENGTH", vad->session);
         return SWITCH_TRUE;
     }
 
@@ -271,6 +290,7 @@ static switch_bool_t amd_handle_voiced_frame(amd_vad_t *vad, const switch_frame_
 
         switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
         switch_channel_set_variable(vad->channel, "amd_cause", "MAXWORDS");
+        amd_fire_event("MACHINE", "MAXWORDS", vad->session);
         return SWITCH_TRUE;
     }
 
@@ -284,6 +304,7 @@ static switch_bool_t amd_handle_voiced_frame(amd_vad_t *vad, const switch_frame_
 
         switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
         switch_channel_set_variable(vad->channel, "amd_cause", "LONGGREETING");
+        amd_fire_event("MACHINE", "LONGGREETING", vad->session);
         return SWITCH_TRUE;
     }
 
@@ -352,6 +373,7 @@ static switch_bool_t amd_read_audio_callback(switch_media_bug_t *bug, void *user
                             "No found variable amd_result set amd_result=NOTSURE\n");
                     switch_channel_set_variable(vad->channel, "amd_result", "NOTSURE");
                     switch_channel_set_variable(vad->channel, "amd_cause", "TOOLONG");
+                    amd_fire_event("NOTSURE", "TOOLONG", vad->session);
                 }
             }
 
@@ -382,6 +404,7 @@ static switch_bool_t amd_read_audio_callback(switch_media_bug_t *bug, void *user
                 if (vad->sample_count_limit <= 0) {
                     switch_channel_set_variable(vad->channel, "amd_result", "NOTSURE");
                     switch_channel_set_variable(vad->channel, "amd_cause", "TOOLONG");
+                    amd_fire_event("NOTSURE", "TOOLONG", vad->session);
                     return SWITCH_FALSE;
                 }
             }
